@@ -122,25 +122,6 @@ dsa --help                             # list commands
 All commands accept `--config PATH` (default `config.yaml`) to point at a
 different config file. Set `ANTHROPIC_API_KEY` in `.env` before running `dsa ask`.
 
-## Milestones / Todo
-
-Tracked as GitHub Issues — checklist mirror here.
-
-- [x] **M1** — Project scaffold (`pyproject.toml`, layout, `.env.example`, `config.yaml`, `.gitignore`)
-- [x] **M2** — File loaders: PDF, docx, pptx, xlsx, md, txt, code
-- [x] **M3** — Indexer: walk → chunk → embed → upsert to Chroma
-- [x] **M4** — Retriever: top-k similarity search with scores
-- [x] **M5** — Claude wrapper (`llm.py`) with prompt caching
-- [x] **M6** — Pipeline: confidence gate + source-cited answer
-- [x] **M7** — CLI commands: `index`, `ask`, `ui`
-- [x] **M8** — Streamlit chat UI
-- [x] **M9** — File-watcher mode (`index --watch`) — phase 2
-- [x] **M10** — Web search fallback (DuckDuckGo) — phase 2
-
-## Status
-
-Current: **M10 complete — all milestones shipped.** Low-confidence queries now fall back to DuckDuckGo (no API key needed) via the `ddgs` library; Claude composes a URL-cited answer from the web snippets. 67/67 tests pass.
-
 ![Empty-state UI](docs/ui-empty.png)
 
 ## Out of scope
