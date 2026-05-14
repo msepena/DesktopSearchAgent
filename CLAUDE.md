@@ -29,7 +29,7 @@ src/desktop_search/
 ├── retriever.py       # M4: query → top-k Hit list
 ├── llm.py             # M5: Claude wrapper with prompt caching
 ├── pipeline.py        # ask(): retrieve → confidence gate → llm.answer; Response.source = local|web|none
-├── cli.py             # typer app: index, ask, ui, version
+├── cli.py             # typer app wired to indexer/pipeline; commands: index, ask, ui, version
 └── app.py             # Streamlit UI (M8)
 
 tests/
