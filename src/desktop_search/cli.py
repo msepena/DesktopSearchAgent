@@ -43,8 +43,7 @@ def index(
 ) -> None:
     """Build or refresh the local index."""
     settings = load_settings(config)
-    override = path if path else None
-    stats = build_index(settings, paths=override)
+    stats = build_index(settings, paths=path)
     typer.echo(f"Scanned:      {stats.files_scanned}")
     typer.echo(f"Indexed:      {stats.files_indexed}")
     typer.echo(f"Skipped:      {stats.files_skipped} (unchanged or empty)")
@@ -54,7 +53,7 @@ def index(
         return
 
     typer.echo("\nWatching for changes... (Ctrl+C to stop)")
-    observer = watch_folders(settings, paths=override)
+    observer = watch_folders(settings, paths=path)
     try:
         while observer.is_alive():
             observer.join(1)

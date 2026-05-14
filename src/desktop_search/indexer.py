@@ -96,14 +96,19 @@ def chunk_documents(docs: list[Document], chunk_size: int, overlap: int) -> list
     return chunks
 
 
+def is_ignored_segment(name: str, ignored: set[str]) -> bool:
+    """Return True if a path segment should be skipped (hidden or in the ignore set)."""
+    return name.startswith(".") or name in ignored
+
+
 def _walk(folder: Path, ignore_patterns: list[str]) -> Iterator[Path]:
     if not folder.exists() or not folder.is_dir():
         return
     ignored = set(ignore_patterns)
     for root, dirs, files in os.walk(folder):
-        dirs[:] = [d for d in dirs if d not in ignored and not d.startswith(".")]
+        dirs[:] = [d for d in dirs if not is_ignored_segment(d, ignored)]
         for name in files:
-            if name.startswith(".") or name in ignored:
+            if is_ignored_segment(name, ignored):
                 continue
             yield Path(root) / name
 
@@ -125,7 +130,8 @@ def _existing_mtimes(collection, source: str) -> set[float] | None:
     return {m["mtime"] for m in metadatas if "mtime" in m}
 
 
-def _index_file(path: Path, collection, embedder: Embedder, settings: Settings) -> int:
+def index_file(path: Path, collection, embedder: Embedder, settings: Settings) -> int:
+    """Index (or skip / replace) a single file. Returns the number of new chunks added."""
     docs = load_file(path)
     if not docs:
         return 0
@@ -174,7 +180,7 @@ def build_index(
     for folder in folders:
         for file_path in _walk(Path(folder), settings.ignore_patterns):
             stats.files_scanned += 1
-            added = _index_file(file_path, collection, embedder, settings)
+            added = index_file(file_path, collection, embedder, settings)
             if added == 0:
                 stats.files_skipped += 1
             else:

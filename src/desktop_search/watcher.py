@@ -7,13 +7,22 @@ re-index call. Deletions drop the file's chunks from Chroma.
 
 import threading
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Literal
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 from .config import Settings
-from .indexer import Embedder, FastEmbedEmbedder, _index_file, get_collection
+from .indexer import (
+    Embedder,
+    FastEmbedEmbedder,
+    get_collection,
+    index_file,
+    is_ignored_segment,
+)
+
+
+Action = Literal["change", "delete"]
 
 
 class DebouncedReindexer(FileSystemEventHandler):
@@ -31,7 +40,7 @@ class DebouncedReindexer(FileSystemEventHandler):
         self._lock = threading.Lock()
         self._pending: dict[tuple[Path, str], threading.Timer] = {}
 
-    def _schedule(self, path: Path, action: str) -> None:
+    def _schedule(self, path: Path, action: Action) -> None:
         key = (path, action)
         with self._lock:
             existing = self._pending.pop(key, None)
@@ -78,12 +87,7 @@ class DebouncedReindexer(FileSystemEventHandler):
 
 def should_index(path: Path, ignore_patterns: list[str]) -> bool:
     ignored = set(ignore_patterns)
-    for part in path.parts[:-1]:
-        if part in ignored or part.startswith("."):
-            return False
-    if path.name.startswith(".") or path.name in ignored:
-        return False
-    return True
+    return not any(is_ignored_segment(p, ignored) for p in path.parts)
 
 
 def watch_folders(
@@ -108,7 +112,7 @@ def watch_folders(
     def on_change(p: Path) -> None:
         if not p.exists() or not should_index(p, settings.ignore_patterns):
             return
-        _index_file(p, collection, embedder, settings)
+        index_file(p, collection, embedder, settings)
 
     def on_delete(p: Path) -> None:
         collection.delete(where={"source": str(p)})

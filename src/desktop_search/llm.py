@@ -95,6 +95,31 @@ def _response_text(response) -> str:
     return "".join(parts)
 
 
+def _call_claude(
+    settings: Settings,
+    system_prompt: str,
+    user_content: str,
+    client: anthropic.Anthropic | None,
+    max_tokens: int,
+) -> Answer:
+    if client is None:
+        client = anthropic.Anthropic()
+    response = client.messages.create(
+        model=settings.llm_model,
+        max_tokens=max_tokens,
+        system=[
+            {
+                "type": "text",
+                "text": system_prompt,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ],
+        messages=[{"role": "user", "content": user_content}],
+    )
+    text = _response_text(response)
+    return Answer(text=text, citations=_extract_citations(text))
+
+
 def answer(
     settings: Settings,
     question: str,
@@ -102,29 +127,11 @@ def answer(
     client: anthropic.Anthropic | None = None,
     max_tokens: int = 1024,
 ) -> Answer:
-    if client is None:
-        client = anthropic.Anthropic()
-
     user_content = (
         f"Context snippets:\n\n{_format_context(context)}\n\n"
         f"---\n\nQuestion: {question}"
     )
-
-    response = client.messages.create(
-        model=settings.llm_model,
-        max_tokens=max_tokens,
-        system=[
-            {
-                "type": "text",
-                "text": _SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral"},
-            }
-        ],
-        messages=[{"role": "user", "content": user_content}],
-    )
-
-    text = _response_text(response)
-    return Answer(text=text, citations=_extract_citations(text))
+    return _call_claude(settings, _SYSTEM_PROMPT, user_content, client, max_tokens)
 
 
 def answer_from_web(
@@ -134,26 +141,8 @@ def answer_from_web(
     client: anthropic.Anthropic | None = None,
     max_tokens: int = 1024,
 ) -> Answer:
-    if client is None:
-        client = anthropic.Anthropic()
-
     user_content = (
         f"Web search results:\n\n{_format_web_context(results)}\n\n"
         f"---\n\nQuestion: {question}"
     )
-
-    response = client.messages.create(
-        model=settings.llm_model,
-        max_tokens=max_tokens,
-        system=[
-            {
-                "type": "text",
-                "text": _WEB_SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral"},
-            }
-        ],
-        messages=[{"role": "user", "content": user_content}],
-    )
-
-    text = _response_text(response)
-    return Answer(text=text, citations=_extract_citations(text))
+    return _call_claude(settings, _WEB_SYSTEM_PROMPT, user_content, client, max_tokens)
