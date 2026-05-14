@@ -29,7 +29,8 @@ src/desktop_search/
 ├── watcher.py         # DebouncedReindexer + watch_folders(); behind `dsa index --watch`
 ├── retriever.py       # M4: query → top-k Hit list
 ├── llm.py             # M5: Claude wrapper with prompt caching
-├── pipeline.py        # ask(): retrieve → confidence gate → llm.answer; Response.source = local|web|none
+├── pipeline.py        # ask(): retrieve → confidence gate → llm.answer / llm.answer_from_web; Response.source = local|web|none
+├── web_search.py      # DuckDuckGoSearch (no API key); WebSearchProvider protocol
 ├── cli.py             # typer app wired to indexer/pipeline; commands: index, ask, ui, version
 └── app.py             # Streamlit chat UI; reuses pipeline.ask; uses absolute imports because `streamlit run` executes app.py as a top-level script
 
@@ -42,7 +43,7 @@ tests/
 
 **Hit** (`retriever.py`): `text, source: Path, section: str | None, score: float`. Score is `1 - cosine_distance` clamped to `[0, 1]`.
 
-**Response** (`pipeline.py`): `answer: str, citations: list[str], hits: list[Hit], source: Literal["local", "web", "none"]`. `source` reflects which branch the confidence gate took — `local` means Claude answered from retrieved chunks, `web` means the top hit was below `settings.confidence_threshold` (placeholder until M10), `none` means the index returned no hits.
+**Response** (`pipeline.py`): `answer: str, citations: list[str], hits: list[Hit], source: Literal["local", "web", "none"]`. `source` reflects which branch the confidence gate took — `local` means Claude answered from retrieved chunks, `web` means the top hit was below `settings.confidence_threshold` and DuckDuckGo results were composed into the answer (citations are URLs), `none` means the index returned no hits.
 
 ## Platform note (important when adding deps)
 

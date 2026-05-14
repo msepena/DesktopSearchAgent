@@ -23,6 +23,7 @@ dependencies = [
     # Pin below 1.21 — onnxruntime dropped Intel macOS wheels starting at 1.21.
     # Pulled in transitively by chromadb; we don't use its default embedding function.
     "onnxruntime>=1.18,<1.21",
+    "ddgs>=9.0.0",
 ]
 
 [project.scripts]

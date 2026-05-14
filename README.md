@@ -22,7 +22,7 @@ A small local RAG (Retrieval-Augmented Generation) utility for your laptop. Ask 
 | CLI | `typer` |
 | Web UI | `streamlit` |
 | Config | `pydantic-settings` + `config.yaml` (CLI flags override) |
-| Web search (phase 2) | TBD (Tavily / Brave / DuckDuckGo) |
+| Web search | DuckDuckGo via `ddgs` (no API key) |
 
 ## Defaults (tunable in `config.yaml`)
 
@@ -81,11 +81,11 @@ Tracked as GitHub Issues — checklist mirror here.
 - [x] **M7** — CLI commands: `index`, `ask`, `ui`
 - [x] **M8** — Streamlit chat UI
 - [x] **M9** — File-watcher mode (`index --watch`) — phase 2
-- [ ] **M10** — Web search fallback (provider TBD) — phase 2
+- [x] **M10** — Web search fallback (DuckDuckGo) — phase 2
 
 ## Status
 
-Current: **M9 complete** — `dsa index --watch` runs an initial full index, then a debounced watchdog watcher keeps Chroma in sync with edits and deletions until Ctrl+C. 57/57 tests pass. Next up: **M10 — Web search fallback** (phase 2).
+Current: **M10 complete — all milestones shipped.** Low-confidence queries now fall back to DuckDuckGo (no API key needed) via the `ddgs` library; Claude composes a URL-cited answer from the web snippets. 67/67 tests pass.
 
 ![Empty-state UI](docs/ui-empty.png)
 

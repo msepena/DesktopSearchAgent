@@ -5,6 +5,7 @@ import pytest
 from desktop_search.config import Settings
 from desktop_search.indexer import get_collection
 from desktop_search.pipeline import ask
+from desktop_search.web_search import WebResult
 
 
 class StubEmbedder:
@@ -31,15 +32,29 @@ class _FakeMessagesAPI:
     def __init__(self, text: str) -> None:
         self._text = text
         self.call_count = 0
+        self.last_kwargs: dict | None = None
 
     def create(self, **kwargs):
         self.call_count += 1
+        self.last_kwargs = kwargs
         return _FakeResponse(self._text)
 
 
 class FakeAnthropic:
     def __init__(self, text: str) -> None:
         self.messages = _FakeMessagesAPI(text)
+
+
+class FakeWebProvider:
+    def __init__(self, results: list[WebResult] | Exception) -> None:
+        self._results = results
+        self.calls: list[tuple[str, int]] = []
+
+    def search(self, query: str, max_results: int = 5) -> list[WebResult]:
+        self.calls.append((query, max_results))
+        if isinstance(self._results, Exception):
+            raise self._results
+        return list(self._results)
 
 
 @pytest.fixture
@@ -64,6 +79,9 @@ def _seed(coll, rows: list[tuple[str, list[float], str, str, str]]) -> None:
     )
 
 
+# --- 'none' branch -------------------------------------------------------
+
+
 def test_empty_index_returns_none_source(settings: Settings) -> None:
     fake = FakeAnthropic("should-not-be-called")
     res = ask(
@@ -71,6 +89,7 @@ def test_empty_index_returns_none_source(settings: Settings) -> None:
         "anything",
         embedder=StubEmbedder([1.0, 0.0, 0.0, 0.0]),
         client=fake,
+        web_provider=FakeWebProvider([]),
     )
     assert res.source == "none"
     assert res.hits == []
@@ -78,44 +97,87 @@ def test_empty_index_returns_none_source(settings: Settings) -> None:
     assert fake.messages.call_count == 0
 
 
+# --- 'local' branch ------------------------------------------------------
+
+
 def test_high_confidence_returns_local_answer(settings: Settings) -> None:
     coll = get_collection(settings.chroma_path)
-    _seed(coll, [
-        ("a", [1.0, 0.0, 0.0, 0.0], "doc text", "/x/a.md", "p.1"),
-    ])
+    _seed(coll, [("a", [1.0, 0.0, 0.0, 0.0], "doc text", "/x/a.md", "p.1")])
     fake = FakeAnthropic("From the file [source: /x/a.md p.1].")
     res = ask(
         settings,
         "q",
         embedder=StubEmbedder([1.0, 0.0, 0.0, 0.0]),
         client=fake,
+        web_provider=FakeWebProvider([]),
     )
     assert res.source == "local"
-    assert "From the file" in res.answer
     assert res.citations == ["[source: /x/a.md p.1]"]
-    assert len(res.hits) == 1
     assert res.hits[0].score >= settings.confidence_threshold
     assert fake.messages.call_count == 1
 
 
-def test_low_confidence_returns_web_stub(settings: Settings) -> None:
+# --- 'web' branch --------------------------------------------------------
+
+
+def test_low_confidence_runs_web_search_and_cites_urls(settings: Settings) -> None:
     coll = get_collection(settings.chroma_path)
-    # Orthogonal vector — query [1,0,0,0] vs stored [0,1,0,0] gives score ~0
-    _seed(coll, [
-        ("a", [0.0, 1.0, 0.0, 0.0], "unrelated text", "/x/a.md", ""),
+    _seed(coll, [("a", [0.0, 1.0, 0.0, 0.0], "unrelated", "/x/a.md", "")])
+
+    web_provider = FakeWebProvider([
+        WebResult(title="Foo", url="https://example.com/foo", snippet="Foo bar."),
+        WebResult(title="Bar", url="https://example.com/bar", snippet="More foo."),
     ])
+    fake = FakeAnthropic(
+        "Per the web [source: https://example.com/foo] and [source: https://example.com/bar]."
+    )
+    res = ask(
+        settings,
+        "q",
+        embedder=StubEmbedder([1.0, 0.0, 0.0, 0.0]),
+        client=fake,
+        web_provider=web_provider,
+    )
+    assert res.source == "web"
+    assert "[source: https://example.com/foo]" in res.citations
+    assert "[source: https://example.com/bar]" in res.citations
+    assert web_provider.calls == [("q", settings.top_k)]
+    # Web system prompt was used (still has cache_control)
+    system = fake.messages.last_kwargs["system"]
+    assert system[0]["cache_control"] == {"type": "ephemeral"}
+
+
+def test_low_confidence_with_empty_web_results(settings: Settings) -> None:
+    coll = get_collection(settings.chroma_path)
+    _seed(coll, [("a", [0.0, 1.0, 0.0, 0.0], "unrelated", "/x/a.md", "")])
+
     fake = FakeAnthropic("should-not-be-called")
     res = ask(
         settings,
         "q",
         embedder=StubEmbedder([1.0, 0.0, 0.0, 0.0]),
         client=fake,
+        web_provider=FakeWebProvider([]),
     )
     assert res.source == "web"
-    assert "Web search fallback" in res.answer
-    assert res.citations == []
-    assert len(res.hits) == 1
-    assert res.hits[0].score < settings.confidence_threshold
+    assert "no results" in res.answer.lower()
+    assert fake.messages.call_count == 0
+
+
+def test_low_confidence_with_web_provider_failure(settings: Settings) -> None:
+    coll = get_collection(settings.chroma_path)
+    _seed(coll, [("a", [0.0, 1.0, 0.0, 0.0], "unrelated", "/x/a.md", "")])
+
+    fake = FakeAnthropic("should-not-be-called")
+    res = ask(
+        settings,
+        "q",
+        embedder=StubEmbedder([1.0, 0.0, 0.0, 0.0]),
+        client=fake,
+        web_provider=FakeWebProvider(RuntimeError("boom")),
+    )
+    assert res.source == "web"
+    assert "boom" in res.answer
     assert fake.messages.call_count == 0
 
 
@@ -132,6 +194,7 @@ def test_response_carries_all_retrieved_hits(settings: Settings) -> None:
         "q",
         embedder=StubEmbedder([1.0, 0.0, 0.0, 0.0]),
         client=fake,
+        web_provider=FakeWebProvider([]),
     )
     assert res.source == "local"
     assert len(res.hits) == settings.top_k

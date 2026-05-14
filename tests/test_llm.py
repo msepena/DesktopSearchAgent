@@ -3,8 +3,9 @@ from pathlib import Path
 import pytest
 
 from desktop_search.config import Settings
-from desktop_search.llm import answer
+from desktop_search.llm import answer, answer_from_web
 from desktop_search.retriever import Hit
+from desktop_search.web_search import WebResult
 
 
 class _FakeBlock:
@@ -101,3 +102,38 @@ def test_no_citations_returns_empty_list(settings: Settings) -> None:
     fake = FakeAnthropic("Plain text without any source tags.")
     ans = answer(settings, "q", [], client=fake)
     assert ans.citations == []
+
+
+# --- answer_from_web -----------------------------------------------------
+
+
+def test_answer_from_web_returns_url_citations(settings: Settings) -> None:
+    fake = FakeAnthropic(
+        "Foo is good [source: https://foo.example]. So is bar [source: https://bar.example]."
+    )
+    results = [
+        WebResult(title="Foo Docs", url="https://foo.example", snippet="Foo intro."),
+        WebResult(title="Bar Site", url="https://bar.example", snippet="Bar intro."),
+    ]
+    ans = answer_from_web(settings, "what?", results, client=fake)
+    assert "[source: https://foo.example]" in ans.citations
+    assert "[source: https://bar.example]" in ans.citations
+    assert len(ans.citations) == 2
+
+
+def test_answer_from_web_uses_distinct_system_prompt(settings: Settings) -> None:
+    fake = FakeAnthropic("ok")
+    answer_from_web(settings, "q", [], client=fake)
+    system_text = fake.messages.last_kwargs["system"][0]["text"]
+    assert "web search results" in system_text.lower()
+    assert fake.messages.last_kwargs["system"][0]["cache_control"] == {"type": "ephemeral"}
+
+
+def test_answer_from_web_includes_urls_in_user_message(settings: Settings) -> None:
+    fake = FakeAnthropic("ok")
+    results = [
+        WebResult(title="T", url="https://distinct-url-marker.example", snippet="body"),
+    ]
+    answer_from_web(settings, "q", results, client=fake)
+    user_msg = fake.messages.last_kwargs["messages"][0]["content"]
+    assert "https://distinct-url-marker.example" in user_msg
