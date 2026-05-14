@@ -68,8 +68,8 @@ dsa ui                          # launches Streamlit on localhost
 
 Tracked as GitHub Issues — checklist mirror here.
 
-- [ ] **M1** — Project scaffold (`pyproject.toml`, layout, `.env.example`, `config.yaml`, `.gitignore`)
-- [ ] **M2** — File loaders: PDF, docx, pptx, xlsx, md, txt, code
+- [x] **M1** — Project scaffold (`pyproject.toml`, layout, `.env.example`, `config.yaml`, `.gitignore`)
+- [x] **M2** — File loaders: PDF, docx, pptx, xlsx, md, txt, code
 - [ ] **M3** — Indexer: walk → chunk → embed → upsert to Chroma
 - [ ] **M4** — Retriever: top-k similarity search with scores
 - [ ] **M5** — Claude wrapper (`llm.py`) with prompt caching
@@ -79,12 +79,30 @@ Tracked as GitHub Issues — checklist mirror here.
 - [ ] **M9** — File-watcher mode (`index --watch`) — phase 2
 - [ ] **M10** — Web search fallback (provider TBD) — phase 2
 
+## Status
+
+Current: **M2 complete** — file loaders for PDF/docx/pptx/xlsx and plain-text/code are working, 12/12 tests pass. Next up: **M3 — Indexer**.
+
 ## Out of scope for v1
 
 - File watcher (phase 2)
 - Web search (phase 2)
 - Per-document access controls
 - OCR for image-only PDFs
+
+## Platform note
+
+The dev machine here is Intel Mac (macOS 26 + x86_64). In 2026, much of the ML
+ecosystem (torch, recent `onnxruntime`) no longer ships Intel-macOS wheels. The
+project sidesteps this by:
+
+- Using **`fastembed`** instead of `sentence-transformers` — it runs the same
+  HuggingFace `all-MiniLM-L6-v2` model through ONNX, no `torch` required.
+- Pinning **`onnxruntime>=1.18,<1.21`** (versions before they dropped Intel-Mac
+  wheels).
+
+These pins are safe to keep on Apple Silicon and Linux too; they just unblock
+Intel. Revisit if `fastembed` requires a newer `onnxruntime`.
 
 ## Setup (once implemented)
 
