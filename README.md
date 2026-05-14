@@ -71,7 +71,7 @@ Tracked as GitHub Issues — checklist mirror here.
 - [x] **M1** — Project scaffold (`pyproject.toml`, layout, `.env.example`, `config.yaml`, `.gitignore`)
 - [x] **M2** — File loaders: PDF, docx, pptx, xlsx, md, txt, code
 - [x] **M3** — Indexer: walk → chunk → embed → upsert to Chroma
-- [ ] **M4** — Retriever: top-k similarity search with scores
+- [x] **M4** — Retriever: top-k similarity search with scores
 - [ ] **M5** — Claude wrapper (`llm.py`) with prompt caching
 - [ ] **M6** — Pipeline: confidence gate + source-cited answer
 - [ ] **M7** — CLI commands: `index`, `ask`, `ui`
@@ -81,7 +81,7 @@ Tracked as GitHub Issues — checklist mirror here.
 
 ## Status
 
-Current: **M3 complete** — indexer walks configured folders, chunks via tiktoken, embeds via fastembed, and idempotently upserts into ChromaDB. 22/22 tests pass. Next up: **M4 — Retriever**.
+Current: **M4 complete** — retriever returns top-k hits with `[0, 1]`-normalized similarity scores and source/section metadata. 29/29 tests pass. Next up: **M5 — Claude wrapper**.
 
 ## Out of scope for v1
 
