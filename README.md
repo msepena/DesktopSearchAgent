@@ -54,15 +54,19 @@ DesktopSearchAgent/
 └── tests/
 ```
 
-## Planned CLI
+## CLI
 
 ```bash
-dsa index                       # full index of folders in config.yaml
-dsa index --path ~/Notes        # ad-hoc index of one or more paths
-dsa index --watch               # phase 2: live re-index on file changes
+dsa index                              # full index of folders in config.yaml
+dsa index --path ~/Notes --path ~/Ref  # ad-hoc index of one or more paths
+dsa index --watch                      # phase 2: live re-index on file changes
 dsa ask "what was my Q3 OKR about latency?"
-dsa ui                          # launches Streamlit on localhost
+dsa ui                                 # launches Streamlit on localhost
+dsa --help                             # list commands
 ```
+
+All commands accept `--config PATH` (default `config.yaml`) to point at a
+different config file. Set `ANTHROPIC_API_KEY` in `.env` before running `dsa ask`.
 
 ## Milestones / Todo
 
@@ -74,14 +78,14 @@ Tracked as GitHub Issues — checklist mirror here.
 - [x] **M4** — Retriever: top-k similarity search with scores
 - [x] **M5** — Claude wrapper (`llm.py`) with prompt caching
 - [x] **M6** — Pipeline: confidence gate + source-cited answer
-- [ ] **M7** — CLI commands: `index`, `ask`, `ui`
+- [x] **M7** — CLI commands: `index`, `ask`, `ui`
 - [ ] **M8** — Streamlit chat UI
 - [ ] **M9** — File-watcher mode (`index --watch`) — phase 2
 - [ ] **M10** — Web search fallback (provider TBD) — phase 2
 
 ## Status
 
-Current: **M6 complete** — end-to-end pipeline glues retrieval, the confidence gate, and the Claude wrapper into a single `ask()` returning a `Response` with `source: local | web | none`. 40/40 tests pass. Next up: **M7 — CLI wiring**.
+Current: **M7 complete** — `dsa index`, `dsa ask`, `dsa ui`, `dsa version` wired end-to-end. The CLI is the first usable surface: index a folder, ask a question, get a cited answer. 46/46 tests pass. Next up: **M8 — Streamlit UI**.
 
 ## Out of scope for v1
 
