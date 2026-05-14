@@ -1,0 +1,35 @@
+# DesktopSearchAgent configuration.
+# CLI flags override values here.
+
+# Folders to index (absolute paths). Add yours below.
+folders: []
+# Example:
+# folders:
+#   - /Users/yourname/Documents/Notes
+#   - /Users/yourname/Documents/Reference
+
+# Embedding model (local, runs on CPU via fastembed/ONNX).
+embedding_model: sentence-transformers/all-MiniLM-L6-v2
+
+# Chunking.
+chunk_size: 800        # tokens per chunk
+chunk_overlap: 100     # token overlap between adjacent chunks
+
+# Retrieval.
+top_k: 6
+confidence_threshold: 0.45  # below this, fall back to web search (phase 2)
+
+# Vector store location (relative to repo root).
+chroma_path: ./data/chroma
+
+# LLM.
+llm_model: claude-sonnet-4-6
+
+# Folder walking.
+ignore_patterns:
+  - .git
+  - .venv
+  - venv
+  - node_modules
+  - __pycache__
+  - .DS_Store

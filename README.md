@@ -15,7 +15,7 @@ A small local RAG (Retrieval-Augmented Generation) utility for your laptop. Ask 
 | Layer | Choice |
 |---|---|
 | Language | Python 3.11+ (managed by `uv`) |
-| Embeddings | `BAAI/bge-small-en-v1.5` via `sentence-transformers` (local, CPU) |
+| Embeddings | `sentence-transformers/all-MiniLM-L6-v2` via `fastembed` / ONNX (local, CPU) |
 | Vector store | ChromaDB (file-backed at `./data/chroma/`) |
 | LLM | Anthropic Claude Sonnet 4.6 (with prompt caching) |
 | File parsers | `pypdf`, `python-docx`, `python-pptx`, `openpyxl` |
