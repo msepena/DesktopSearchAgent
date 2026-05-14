@@ -25,7 +25,8 @@ src/desktop_search/
 ├── __init__.py        # __version__
 ├── config.py          # Settings (Pydantic) + load_settings(path)
 ├── loaders.py         # per-filetype text extraction + load_file dispatcher
-├── indexer.py         # M3: walk → chunk → embed → upsert to Chroma
+├── indexer.py         # walk → chunk → embed → upsert to Chroma
+├── watcher.py         # DebouncedReindexer + watch_folders(); behind `dsa index --watch`
 ├── retriever.py       # M4: query → top-k Hit list
 ├── llm.py             # M5: Claude wrapper with prompt caching
 ├── pipeline.py        # ask(): retrieve → confidence gate → llm.answer; Response.source = local|web|none

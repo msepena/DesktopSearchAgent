@@ -80,12 +80,12 @@ Tracked as GitHub Issues — checklist mirror here.
 - [x] **M6** — Pipeline: confidence gate + source-cited answer
 - [x] **M7** — CLI commands: `index`, `ask`, `ui`
 - [x] **M8** — Streamlit chat UI
-- [ ] **M9** — File-watcher mode (`index --watch`) — phase 2
+- [x] **M9** — File-watcher mode (`index --watch`) — phase 2
 - [ ] **M10** — Web search fallback (provider TBD) — phase 2
 
 ## Status
 
-Current: **M8 complete** — Streamlit chat UI reuses `pipeline.ask`. Chat history in session, per-message Sources expander, sidebar with index size, model, threshold, and top-k. 48/48 tests pass. Next up: **M9 — File-watcher mode** (phase 2).
+Current: **M9 complete** — `dsa index --watch` runs an initial full index, then a debounced watchdog watcher keeps Chroma in sync with edits and deletions until Ctrl+C. 57/57 tests pass. Next up: **M10 — Web search fallback** (phase 2).
 
 ![Empty-state UI](docs/ui-empty.png)
 

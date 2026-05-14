@@ -8,6 +8,7 @@ from . import __version__
 from .config import load_settings
 from .indexer import build_index
 from .pipeline import ask as run_pipeline
+from .watcher import watch_folders
 
 
 app = typer.Typer(
@@ -32,6 +33,12 @@ def index(
         "-p",
         help="Folder to index. Repeatable. Overrides folders in config.yaml.",
     ),
+    watch: bool = typer.Option(
+        False,
+        "--watch",
+        "-w",
+        help="After the initial index, keep running and re-index on file changes.",
+    ),
     config: Path = _CONFIG_OPTION,
 ) -> None:
     """Build or refresh the local index."""
@@ -42,6 +49,20 @@ def index(
     typer.echo(f"Indexed:      {stats.files_indexed}")
     typer.echo(f"Skipped:      {stats.files_skipped} (unchanged or empty)")
     typer.echo(f"Chunks added: {stats.chunks_added}")
+
+    if not watch:
+        return
+
+    typer.echo("\nWatching for changes... (Ctrl+C to stop)")
+    observer = watch_folders(settings, paths=override)
+    try:
+        while observer.is_alive():
+            observer.join(1)
+    except KeyboardInterrupt:
+        typer.echo("\nStopping watcher.")
+    finally:
+        observer.stop()
+        observer.join()
 
 
 @app.command()
