@@ -6,9 +6,55 @@ A small local RAG (Retrieval-Augmented Generation) utility for your laptop. Ask 
 
 1. **Indexer** — walks configured folders, extracts text from PDFs, Office docs, Markdown, plain text, and code, chunks it, and stores embeddings in a local vector store.
 2. **Query pipeline** — embeds the question, retrieves top-k similar chunks from the vector store.
-3. **Confidence gate** — if the best matches clear a similarity threshold, the LLM answers using those chunks; otherwise the query is forwarded to web search (phase 2).
-4. **Answer generation** — Claude composes a cited answer from the retrieved context.
+3. **Confidence gate** — if the best matches clear a similarity threshold, the LLM answers using those chunks; otherwise the query is forwarded to web search.
+4. **Answer generation** — Claude composes a cited answer from the retrieved context (file paths for local, URLs for web).
 5. **UI** — CLI for power use, Streamlit web UI for casual querying.
+
+## Architecture
+
+### Data flow
+
+```mermaid
+flowchart TD
+    cfg[config.yaml] -.-> idx
+    folders[/folders/] --> idx["loaders + indexer<br/>(walk · chunk · embed)"]
+    idx -->|deterministic upsert| db[("ChromaDB<br/>./data/chroma/")]
+    watcher["watcher<br/>(dsa index --watch)"] -.->|debounced file events| idx
+
+    user["dsa ask · Streamlit UI"] --> pipe["pipeline.ask<br/>(confidence gate)"]
+    pipe -->|embed query| db
+    db -->|top-k Hits| pipe
+
+    pipe -->|score ≥ threshold| llmL["llm.answer<br/>context: file paths"]
+    pipe -->|score < threshold| web["web_search<br/>DuckDuckGo via ddgs"]
+    web -->|WebResults| llmW["llm.answer_from_web<br/>context: URLs"]
+
+    llmL --> claude["Anthropic API<br/>Claude Sonnet 4.6<br/>(prompt-cached system)"]
+    llmW --> claude
+    claude -->|cited answer<br/>source: local / web / none| user
+```
+
+### Module graph (low → high)
+
+| Module | Role | Depends on |
+|---|---|---|
+| `config` | `Settings` Pydantic model + YAML loader. | — |
+| `loaders` | Per-filetype text extraction (`pdf`, `docx`, `pptx`, `xlsx`, plain) + dispatcher. | — |
+| `web_search` | `WebSearchProvider` Protocol + `DuckDuckGoSearch` impl (no API key). | — |
+| `indexer` | Folder walker, tiktoken chunker, `FastEmbedEmbedder`, ChromaDB upsert; exposes the `Embedder` Protocol. | `config`, `loaders` |
+| `watcher` | `DebouncedReindexer` + `watch_folders`; behind `dsa index --watch`. | `config`, `indexer` |
+| `retriever` | `search() → list[Hit]` with normalized cosine scores. | `config`, `indexer` |
+| `llm` | `answer()` for local Hits, `answer_from_web()` for URLs. Both use cache-controlled system prompts. | `config`, `retriever`, `web_search` |
+| `pipeline` | `ask()`: retrieval → confidence gate → either `llm.answer` or web search + `llm.answer_from_web`. Returns `Response(answer, citations, hits, source)`. | everything above |
+| `cli` | Typer app: `dsa index [--watch]`, `dsa ask`, `dsa ui`, `dsa version`. | `pipeline`, `indexer`, `watcher` |
+| `app` | Streamlit chat UI; reuses `pipeline.ask`. | `config`, `indexer`, `pipeline` |
+
+### Key invariants
+
+- **Embeddings are shared.** Indexing and querying both go through the same `Embedder` Protocol, so vectors are guaranteed to live in the same space. Tests inject stub embedders without touching the production class.
+- **Idempotent indexing.** Chunk IDs are `{path}#{chunk_index}`. Re-indexing an unchanged file is a no-op (mtime check); a modified file deletes its prior chunks then upserts. The watcher reuses this same `_index_file` path.
+- **Cosine score normalization.** ChromaDB cosine `distance ∈ [0, 2]` is converted to `score = clamp(1 - distance, 0, 1)` so the threshold comparison in `pipeline.ask` is stable regardless of vector orientation.
+- **Citations are extracted, not trusted blindly.** The LLM is instructed to emit `[source: ...]` tokens; `_extract_citations` parses them out of the response and dedupes. URLs vs file paths just fall out of which prompt was used.
 
 ## Stack
 
@@ -28,30 +74,38 @@ A small local RAG (Retrieval-Augmented Generation) utility for your laptop. Ask 
 
 - Chunk size: **800 tokens**, **100-token overlap**
 - Top-k: **6**
-- Confidence threshold: cosine similarity ≥ **0.45** (below this triggers the web fallback placeholder)
+- Confidence threshold: cosine similarity ≥ **0.45** (below this triggers the web search fallback)
 
-## Project layout (planned)
+## Project layout
 
 ```
 DesktopSearchAgent/
 ├── README.md
-├── pyproject.toml
+├── CLAUDE.md                # guidance for Claude Code contributors
+├── pyproject.toml           # uv-managed; pins onnxruntime<1.21 (Intel-Mac wheels)
+├── uv.lock
 ├── config.yaml              # indexed folders, model names, thresholds
 ├── .env.example             # ANTHROPIC_API_KEY=
 ├── .gitignore
 ├── data/
 │   └── chroma/              # local vector store (gitignored)
+├── docs/
+│   └── ui-empty.png         # screenshot embedded in this README
+├── scripts/
+│   └── screenshot.py        # Playwright runner that regenerates ui-empty.png
 ├── src/desktop_search/
 │   ├── __init__.py
-│   ├── config.py
-│   ├── loaders.py           # per-filetype text extraction
-│   ├── indexer.py           # walk → chunk → embed → store
-│   ├── retriever.py         # query → top-k chunks + score
-│   ├── llm.py               # Claude wrapper
-│   ├── pipeline.py          # confidence gate, answer composition
-│   ├── cli.py               # `dsa index` / `dsa ask` / `dsa ui`
-│   └── app.py               # Streamlit UI
-└── tests/
+│   ├── config.py            # Settings + YAML loader
+│   ├── loaders.py           # per-filetype text extraction + load_file dispatcher
+│   ├── indexer.py           # walk → chunk → embed → ChromaDB upsert
+│   ├── watcher.py           # DebouncedReindexer; behind `dsa index --watch`
+│   ├── retriever.py         # query → top-k Hits with normalized score
+│   ├── llm.py               # Claude wrapper: answer + answer_from_web
+│   ├── web_search.py        # DuckDuckGoSearch (no API key)
+│   ├── pipeline.py          # ask(): retrieval → confidence gate → llm
+│   ├── cli.py               # typer app: index [--watch], ask, ui, version
+│   └── app.py               # Streamlit chat UI
+└── tests/                   # pytest (+ streamlit.testing.v1.AppTest for UI)
 ```
 
 ## CLI
@@ -89,12 +143,12 @@ Current: **M10 complete — all milestones shipped.** Low-confidence queries now
 
 ![Empty-state UI](docs/ui-empty.png)
 
-## Out of scope for v1
+## Out of scope
 
-- File watcher (phase 2)
-- Web search (phase 2)
-- Per-document access controls
-- OCR for image-only PDFs
+- Per-document access controls.
+- OCR for image-only PDFs.
+- Re-ranking after retrieval (would help when the embedding model returns close-but-wrong neighbors).
+- Multi-turn conversation memory in the LLM call — each `ask()` is a single-turn prompt.
 
 ## Platform note
 
@@ -110,7 +164,7 @@ project sidesteps this by:
 These pins are safe to keep on Apple Silicon and Linux too; they just unblock
 Intel. Revisit if `fastembed` requires a newer `onnxruntime`.
 
-## Setup (once implemented)
+## Setup
 
 ```bash
 # clone and enter
