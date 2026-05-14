@@ -72,7 +72,7 @@ Tracked as GitHub Issues — checklist mirror here.
 - [x] **M2** — File loaders: PDF, docx, pptx, xlsx, md, txt, code
 - [x] **M3** — Indexer: walk → chunk → embed → upsert to Chroma
 - [x] **M4** — Retriever: top-k similarity search with scores
-- [ ] **M5** — Claude wrapper (`llm.py`) with prompt caching
+- [x] **M5** — Claude wrapper (`llm.py`) with prompt caching
 - [ ] **M6** — Pipeline: confidence gate + source-cited answer
 - [ ] **M7** — CLI commands: `index`, `ask`, `ui`
 - [ ] **M8** — Streamlit chat UI
@@ -81,7 +81,7 @@ Tracked as GitHub Issues — checklist mirror here.
 
 ## Status
 
-Current: **M4 complete** — retriever returns top-k hits with `[0, 1]`-normalized similarity scores and source/section metadata. 29/29 tests pass. Next up: **M5 — Claude wrapper**.
+Current: **M5 complete** — Claude Sonnet 4.6 wrapper with prompt-cached system block, context formatting, and inline-citation extraction. 36/36 tests pass. Next up: **M6 — Pipeline**.
 
 ## Out of scope for v1
 
