@@ -79,13 +79,15 @@ Tracked as GitHub Issues — checklist mirror here.
 - [x] **M5** — Claude wrapper (`llm.py`) with prompt caching
 - [x] **M6** — Pipeline: confidence gate + source-cited answer
 - [x] **M7** — CLI commands: `index`, `ask`, `ui`
-- [ ] **M8** — Streamlit chat UI
+- [x] **M8** — Streamlit chat UI
 - [ ] **M9** — File-watcher mode (`index --watch`) — phase 2
 - [ ] **M10** — Web search fallback (provider TBD) — phase 2
 
 ## Status
 
-Current: **M7 complete** — `dsa index`, `dsa ask`, `dsa ui`, `dsa version` wired end-to-end. The CLI is the first usable surface: index a folder, ask a question, get a cited answer. 46/46 tests pass. Next up: **M8 — Streamlit UI**.
+Current: **M8 complete** — Streamlit chat UI reuses `pipeline.ask`. Chat history in session, per-message Sources expander, sidebar with index size, model, threshold, and top-k. 48/48 tests pass. Next up: **M9 — File-watcher mode** (phase 2).
+
+![Empty-state UI](docs/ui-empty.png)
 
 ## Out of scope for v1
 

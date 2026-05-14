@@ -33,6 +33,7 @@ dev = [
     "pytest>=8.0.0",
     "ruff>=0.7.0",
     "fpdf2>=2.8.0",
+    "playwright>=1.59.0",
 ]
 
 [build-system]

@@ -30,7 +30,7 @@ src/desktop_search/
 ├── llm.py             # M5: Claude wrapper with prompt caching
 ├── pipeline.py        # ask(): retrieve → confidence gate → llm.answer; Response.source = local|web|none
 ├── cli.py             # typer app wired to indexer/pipeline; commands: index, ask, ui, version
-└── app.py             # Streamlit UI (M8)
+└── app.py             # Streamlit chat UI; reuses pipeline.ask; uses absolute imports because `streamlit run` executes app.py as a top-level script
 
 tests/
 ├── test_smoke.py      # CLI --help, version, package version
@@ -69,7 +69,9 @@ uv run pytest -q               # all
 uv run pytest tests/test_loaders.py::test_load_pdf_one_doc_per_page
 ```
 
-Tests are **pure pytest** (no Swift Testing here; that convention is from `FigmaDemo`). Generate fixtures in-process; do not check in binary blobs.
+Tests are **pure pytest** (no Swift Testing here; that convention is from `FigmaDemo`). Generate fixtures in-process; do not check in binary blobs. UI smoke tests use `streamlit.testing.v1.AppTest`.
+
+`scripts/screenshot.py` regenerates `docs/ui-empty.png` against a running Streamlit instance (uses the `playwright` dev dep). Re-run when the UI layout changes meaningfully.
 
 ## Milestone discipline
 
