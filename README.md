@@ -70,7 +70,7 @@ Tracked as GitHub Issues — checklist mirror here.
 
 - [x] **M1** — Project scaffold (`pyproject.toml`, layout, `.env.example`, `config.yaml`, `.gitignore`)
 - [x] **M2** — File loaders: PDF, docx, pptx, xlsx, md, txt, code
-- [ ] **M3** — Indexer: walk → chunk → embed → upsert to Chroma
+- [x] **M3** — Indexer: walk → chunk → embed → upsert to Chroma
 - [ ] **M4** — Retriever: top-k similarity search with scores
 - [ ] **M5** — Claude wrapper (`llm.py`) with prompt caching
 - [ ] **M6** — Pipeline: confidence gate + source-cited answer
@@ -81,7 +81,7 @@ Tracked as GitHub Issues — checklist mirror here.
 
 ## Status
 
-Current: **M2 complete** — file loaders for PDF/docx/pptx/xlsx and plain-text/code are working, 12/12 tests pass. Next up: **M3 — Indexer**.
+Current: **M3 complete** — indexer walks configured folders, chunks via tiktoken, embeds via fastembed, and idempotently upserts into ChromaDB. 22/22 tests pass. Next up: **M4 — Retriever**.
 
 ## Out of scope for v1
 
