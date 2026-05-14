@@ -73,7 +73,7 @@ Tracked as GitHub Issues — checklist mirror here.
 - [x] **M3** — Indexer: walk → chunk → embed → upsert to Chroma
 - [x] **M4** — Retriever: top-k similarity search with scores
 - [x] **M5** — Claude wrapper (`llm.py`) with prompt caching
-- [ ] **M6** — Pipeline: confidence gate + source-cited answer
+- [x] **M6** — Pipeline: confidence gate + source-cited answer
 - [ ] **M7** — CLI commands: `index`, `ask`, `ui`
 - [ ] **M8** — Streamlit chat UI
 - [ ] **M9** — File-watcher mode (`index --watch`) — phase 2
@@ -81,7 +81,7 @@ Tracked as GitHub Issues — checklist mirror here.
 
 ## Status
 
-Current: **M5 complete** — Claude Sonnet 4.6 wrapper with prompt-cached system block, context formatting, and inline-citation extraction. 36/36 tests pass. Next up: **M6 — Pipeline**.
+Current: **M6 complete** — end-to-end pipeline glues retrieval, the confidence gate, and the Claude wrapper into a single `ask()` returning a `Response` with `source: local | web | none`. 40/40 tests pass. Next up: **M7 — CLI wiring**.
 
 ## Out of scope for v1
 

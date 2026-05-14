@@ -28,7 +28,7 @@ src/desktop_search/
 ├── indexer.py         # M3: walk → chunk → embed → upsert to Chroma
 ├── retriever.py       # M4: query → top-k Hit list
 ├── llm.py             # M5: Claude wrapper with prompt caching
-├── pipeline.py        # M6: confidence gate; returns Response w/ source = local|web|none
+├── pipeline.py        # ask(): retrieve → confidence gate → llm.answer; Response.source = local|web|none
 ├── cli.py             # typer app: index, ask, ui, version
 └── app.py             # Streamlit UI (M8)
 
@@ -39,7 +39,9 @@ tests/
 
 **Document shape**: `loaders.Document(text, source: Path, section: str | None, mtime: float)`. `section` is `"p.N"` for PDF, `"slide N"` for PPTX, sheet name for XLSX, `None` for DOCX/plain.
 
-**Hit / Response shapes** are stubbed in `retriever.py` and `pipeline.py` — flesh them out in M4 and M6 respectively.
+**Hit** (`retriever.py`): `text, source: Path, section: str | None, score: float`. Score is `1 - cosine_distance` clamped to `[0, 1]`.
+
+**Response** (`pipeline.py`): `answer: str, citations: list[str], hits: list[Hit], source: Literal["local", "web", "none"]`. `source` reflects which branch the confidence gate took — `local` means Claude answered from retrieved chunks, `web` means the top hit was below `settings.confidence_threshold` (placeholder until M10), `none` means the index returned no hits.
 
 ## Platform note (important when adding deps)
 
